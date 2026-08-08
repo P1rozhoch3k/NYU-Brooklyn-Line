@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Brooklyn Line — NYU Tandon Planner</title>
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#16181D" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Brooklyn Line" />
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+<link rel="icon" href="assets/icon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="assets/icon-180.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<header class="ink-bar">
+  <div class="ink-bar__inner">
+    <div class="ink-bar__top">
+      <div class="brand">
+        <span class="brand__dot"></span>
+        <div class="brand__text">
+          <span class="brand__line1">THE BROOKLYN LINE</span>
+          <span class="brand__line2">NYU Tandon · Fall 2026</span>
+        </div>
+      </div>
+
+      <button class="bell-btn" id="notify-toggle" type="button" aria-pressed="false" title="Turn on live reminders while this tab is open">
+        <span aria-hidden="true">🔔</span>
+      </button>
+    </div>
+
+    <div class="departure-board" id="departure-board" aria-live="polite">
+      <div class="departure-board__label">NEXT ARRIVAL</div>
+      <div class="departure-board__row">
+        <span class="departure-board__event" id="db-event">Loading&hellip;</span>
+        <span class="departure-board__eta" id="db-eta">--</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav class="line-map" aria-label="Sections">
+  <ol class="line-map__stations">
+    <li class="station" data-tab="schedule" data-line="s">
+      <button class="station__button" type="button">
+        <span class="station__bullet">S</span>
+        <span class="station__label">Schedule</span>
+      </button>
+    </li>
+    <li class="line-map__connector" data-idx="1" aria-hidden="true"></li>
+    <li class="station" data-tab="keydates" data-line="k">
+      <button class="station__button" type="button">
+        <span class="station__bullet">K</span>
+        <span class="station__label">Key Dates</span>
+      </button>
+    </li>
+    <li class="line-map__connector" data-idx="2" aria-hidden="true"></li>
+    <li class="station" data-tab="homework" data-line="h">
+      <button class="station__button" type="button">
+        <span class="station__bullet">H</span>
+        <span class="station__label">Homework</span>
+      </button>
+    </li>
+    <li class="line-map__connector" data-idx="3" aria-hidden="true"></li>
+    <li class="station" data-tab="intl" data-line="i">
+      <button class="station__button" type="button">
+        <span class="station__bullet">I</span>
+        <span class="station__label">Intl Hub</span>
+      </button>
+    </li>
+    <li class="line-map__connector" data-idx="4" aria-hidden="true"></li>
+    <li class="station" data-tab="transit" data-line="t">
+      <button class="station__button" type="button">
+        <span class="station__bullet">T</span>
+        <span class="station__label">Transit</span>
+      </button>
+    </li>
+  </ol>
+</nav>
+
+<main class="platform">
+
+  <!-- SCHEDULE -->
+  <section class="view" id="view-schedule" data-line="s">
+    <div class="view__header">
+      <h1 class="view__title">Class Schedule</h1>
+      <p class="view__subtitle">Your weekly track — export gives you a reminder 2h and 90min before each class</p>
+      <div class="view__header-actions">
+        <button class="btn btn--ghost" id="export-schedule-ics" type="button">Export to calendar (.ics)</button>
+        <button class="btn btn--solid" id="add-class-btn" type="button">+ Add class</button>
+      </div>
+    </div>
+    <div class="week-grid" id="week-grid"></div>
+  </section>
+
+  <!-- KEY DATES -->
+  <section class="view" id="view-keydates" data-line="k" hidden>
+    <div class="view__header">
+      <h1 class="view__title">Key Dates</h1>
+      <p class="view__subtitle">Official NYU Fall 2026 academic calendar — auto-loaded, not editable</p>
+      <button class="btn btn--ghost" id="export-keydates-ics" type="button">Export all to calendar (.ics)</button>
+    </div>
+    <ul class="date-list" id="keydates-list"></ul>
+  </section>
+
+  <!-- HOMEWORK -->
+  <section class="view" id="view-homework" data-line="h" hidden>
+    <div class="view__header">
+      <h1 class="view__title">Homework &amp; Deadlines</h1>
+      <p class="view__subtitle">Everything due, grouped by urgency</p>
+      <div class="view__header-actions">
+        <button class="btn btn--ghost" id="export-homework-ics" type="button">Export to calendar (.ics)</button>
+        <button class="btn btn--ghost" id="quickadd-btn" type="button">+ Paste from email</button>
+        <button class="btn btn--solid" id="add-task-btn" type="button">+ Add assignment</button>
+      </div>
+    </div>
+    <div class="task-groups" id="task-groups"></div>
+  </section>
+
+  <!-- INTERNATIONAL HUB -->
+  <section class="view" id="view-intl" data-line="i" hidden>
+    <div class="view__header">
+      <h1 class="view__title">International Hub</h1>
+      <p class="view__subtitle">Non-academic essentials for studying in the US</p>
+    </div>
+    <div class="card-grid" id="intl-content"></div>
+  </section>
+
+  <!-- TRANSIT -->
+  <section class="view" id="view-transit" data-line="t" hidden>
+    <div class="view__header">
+      <h1 class="view__title">Brooklyn &amp; Transit</h1>
+      <p class="view__subtitle">Getting to and from 6 MetroTech Center</p>
+    </div>
+    <div class="card-grid" id="transit-content"></div>
+
+    <div class="neighborhood">
+      <h2 class="section-title">Near your dorm — 55 Clark Street</h2>
+      <div class="neighborhood__map">
+        <iframe id="neighborhood-map" title="Map centered on 55 Clark Street, Brooklyn" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+      <ul class="spot-list" id="neighborhood-list"></ul>
+    </div>
+  </section>
+
+</main>
+
+<!-- Class modal -->
+<dialog class="modal" id="class-modal">
+  <form method="dialog" class="modal__form" id="class-form">
+    <h2 class="modal__title" id="class-modal-title">Add class</h2>
+    <input type="hidden" id="class-id" />
+    <label class="field">
+      <span class="field__label">Course name</span>
+      <input type="text" id="class-name" required placeholder="e.g. CS-UY 1114" />
+    </label>
+    <label class="field">
+      <span class="field__label">Room / Building</span>
+      <input type="text" id="class-room" placeholder="e.g. 2 MTC, Rm 908" />
+    </label>
+    <div class="field-row">
+      <label class="field">
+        <span class="field__label">Day</span>
+        <select id="class-day">
+          <option value="0">Sunday</option>
+          <option value="1">Monday</option>
+          <option value="2">Tuesday</option>
+          <option value="3">Wednesday</option>
+          <option value="4">Thursday</option>
+          <option value="5">Friday</option>
+          <option value="6">Saturday</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="field__label">Start</span>
+        <input type="time" id="class-start" required />
+      </label>
+      <label class="field">
+        <span class="field__label">End</span>
+        <input type="time" id="class-end" required />
+      </label>
+    </div>
+    <div class="modal__actions">
+      <button type="button" class="btn btn--danger" id="class-delete-btn" hidden>Delete</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn--ghost" id="class-cancel-btn">Cancel</button>
+      <button type="submit" class="btn btn--solid">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Task modal -->
+<dialog class="modal" id="task-modal">
+  <form method="dialog" class="modal__form" id="task-form">
+    <h2 class="modal__title" id="task-modal-title">Add assignment</h2>
+    <input type="hidden" id="task-id" />
+    <label class="field">
+      <span class="field__label">Title</span>
+      <input type="text" id="task-title" required placeholder="e.g. Problem Set 3" />
+    </label>
+    <label class="field">
+      <span class="field__label">Subject / Course</span>
+      <input type="text" id="task-subject" placeholder="e.g. Calc II" />
+    </label>
+    <div class="field-row">
+      <label class="field">
+        <span class="field__label">Due date</span>
+        <input type="date" id="task-due" required />
+      </label>
+      <label class="field">
+        <span class="field__label">Priority</span>
+        <select id="task-priority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+      </label>
+    </div>
+    <div class="modal__actions">
+      <button type="button" class="btn btn--danger" id="task-delete-btn" hidden>Delete</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn--ghost" id="task-cancel-btn">Cancel</button>
+      <button type="submit" class="btn btn--solid">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Paste-from-email modal -->
+<dialog class="modal" id="quickadd-modal">
+  <div class="modal__form">
+    <h2 class="modal__title">Paste from email</h2>
+    <p class="modal__hint">Paste the text of an email below — we'll try to pull a title and due date out of it so you can review before saving.</p>
+    <label class="field">
+      <span class="field__label">Email text</span>
+      <textarea id="quickadd-text" rows="7" placeholder="Paste the email content here…"></textarea>
+    </label>
+    <div class="modal__actions">
+      <span class="spacer"></span>
+      <button type="button" class="btn btn--ghost" id="quickadd-cancel-btn">Cancel</button>
+      <button type="button" class="btn btn--solid" id="quickadd-parse-btn">Parse &amp; continue</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/data.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/ics.js"></script>
+<script src="js/notify.js"></script>
+<script src="js/quickadd.js"></script>
+<script src="js/app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
