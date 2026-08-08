@@ -206,7 +206,7 @@ input, select { font-family: inherit; }
 .line-map {
   max-width: 1180px;
   margin: 24px auto;
-  padding: 22px 28px 16px;
+  padding: 6px 28px 16px;
   position: relative;
   background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.65));
   border: 1px solid var(--border);
@@ -228,7 +228,11 @@ input, select { font-family: inherit; }
 .line-map__stations {
   list-style: none;
   margin: 0;
-  padding: 0 2px;
+  /* extra top padding — the active station's ping ring (see stationPing
+     below) scales up past the bullet's own box; overflow-x: auto implicitly
+     turns overflow-y into auto too, so without this clearance the ring gets
+     clipped at the top */
+  padding: 20px 2px 4px;
   display: flex;
   flex-wrap: nowrap;
   align-items: flex-start;
@@ -296,11 +300,14 @@ input, select { font-family: inherit; }
   transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.station[data-line="k"] .station__bullet { --station-color: var(--line-k); }
-.station[data-line="s"] .station__bullet { --station-color: var(--line-s); }
-.station[data-line="h"] .station__bullet { --station-color: var(--line-h); }
-.station[data-line="i"] .station__bullet { --station-color: var(--line-i); }
-.station[data-line="t"] .station__bullet { --station-color: var(--line-t); }
+/* set on .station (not .station__bullet) so both the bullet AND the label
+   — siblings, not ancestor/descendant — can see it; custom properties only
+   inherit down through descendants, not sideways to siblings */
+.station[data-line="k"] { --station-color: var(--line-k); }
+.station[data-line="s"] { --station-color: var(--line-s); }
+.station[data-line="h"] { --station-color: var(--line-h); }
+.station[data-line="i"] { --station-color: var(--line-i); }
+.station[data-line="t"] { --station-color: var(--line-t); }
 
 .station__label {
   font-family: var(--font-body);
@@ -818,9 +825,62 @@ input, select { font-family: inherit; }
 /* ---------- responsive ---------- */
 
 @media (max-width: 720px) {
+  /* nav becomes a floating bottom dock — iOS-style translucent "liquid
+     glass": blurred, semi-transparent, pill-rounded. Desktop keeps the
+     top subway-panel treatment untouched. */
+  .line-map {
+    position: fixed;
+    left: 14px;
+    right: 14px;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    top: auto;
+    z-index: 30;
+    margin: 0;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    border-radius: 26px;
+    box-shadow: 0 10px 34px rgba(22,24,29,0.28), inset 0 1px 0 rgba(255,255,255,0.6);
+    transition: transform 0.3s cubic-bezier(.25,.8,.4,1);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .line-map { background: rgba(241,236,226,0.97); }
+  }
+
   .line-map::before { display: none; }
-  .line-map { padding: 16px 16px 14px; }
-  .line-map__stations { padding: 4px 4px 6px; }
+
+  .line-map__stations {
+    overflow: visible;
+    justify-content: space-between;
+    padding: 16px 10px 8px;
+  }
+
+  /* no connecting route line and no signage strip in the compact dock —
+     just the stations, laconic like a native tab bar */
+  .line-map__connector { display: none; }
+
+  .station__button { gap: 3px; padding: 2px 4px; }
+
+  .station__bullet { width: 36px; height: 36px; font-size: 13px; border-width: 3px; }
+
+  .station__label {
+    font-size: 9.5px;
+    padding: 0;
+    background: none !important;
+    font-weight: 600;
+  }
+
+  .station.is-active .station__label {
+    color: var(--station-color, var(--ink));
+  }
+
+  .platform { padding-bottom: 130px; }
+
+  .toast { bottom: calc(108px + env(safe-area-inset-bottom)); }
+
   .week-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .departure-board { min-width: 0; width: 100%; }
   .ink-bar__inner { flex-direction: column; align-items: stretch; }
